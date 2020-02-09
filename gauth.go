@@ -6,6 +6,7 @@ import (
 	"crypto/cipher"
 	"crypto/sha256"
 	"encoding/csv"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -26,6 +27,10 @@ func main() {
 		log.Fatal(e)
 	}
 	cfgPath := path.Join(user.HomeDir, ".config/gauth.csv")
+
+	onlyCurrent := flag.Bool("current", false, "show only current code")
+	provider := flag.String("provider", "", "show only one provider")
+	flag.Parse()
 
 	cfgContent, e := ioutil.ReadFile(cfgPath)
 	if e != nil {
@@ -75,15 +80,32 @@ func main() {
 	currentTS, progress := gauth.IndexNow()
 
 	tw := tabwriter.NewWriter(os.Stdout, 0, 8, 1, ' ', 0)
-	fmt.Fprintln(tw, "\tprev\tcurr\tnext")
+
+	if !*onlyCurrent {
+		fmt.Fprintln(tw, "\tprev\tcurr\tnext")
+	}
+
 	for _, record := range cfg {
 		name, secret := record[0], record[1]
+
+		if len(*provider) != 0 && *provider != name {
+			continue
+		}
+
 		prev, curr, next, err := gauth.Codes(secret, currentTS)
 		if err != nil {
 			log.Fatalf("Code: %v", err)
 		}
-		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", name, prev, curr, next)
+
+		if *onlyCurrent {
+			fmt.Printf("%s\n", curr)
+		} else {
+			fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", name, prev, curr, next)
+		}
 	}
 	tw.Flush()
-	fmt.Printf("[%-29s]\n", strings.Repeat("=", progress))
+
+	if !*onlyCurrent {
+		fmt.Printf("[%-29s]\n", strings.Repeat("=", progress))
+	}
 }
