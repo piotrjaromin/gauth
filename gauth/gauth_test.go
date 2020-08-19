@@ -3,7 +3,7 @@ package gauth_test
 import (
 	"testing"
 
-	"github.com/pcarrier/gauth/gauth"
+	"github.com/piotrjaromin/gauth/gauth"
 )
 
 func TestCodes(t *testing.T) {
